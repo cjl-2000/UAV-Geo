@@ -2,18 +2,36 @@ import cv2
 import numpy as np
 
 
-def slic(img, k):
-    # Slic超像素分割
-    slic = cv2.ximgproc.createSuperpixelSLIC(img, algorithm='SLIC', region_size=20, ruler=10.0)
-    slic.iterate(k)
+def slic_compute(img, k):
+    # # Slic超像素分割
+    # slic = cv2.ximgproc.createSuperpixelSLIC(img, region_size=20, ruler=10.0)
+    #
+    # slic.iterate(k)
+    # slic_enforce_connectivity = True
+    # if slic_enforce_connectivity:
+    #     slic.enforceLabelConnectivity()
+    #
+    # # 生成超像素块边缘图
+    # mask = slic.getLabelContourMask()
+    # cv2.imshow("slic", slic)
+    # cv2.imshow("mask", mask)
+    # return slic, mask
+    mg = cv2.imread("mao.jpg")
+    # 初始化slic项，超像素平均尺寸20（默认为10），平滑因子20
+    slic = cv2.ximgproc.createSuperpixelSLIC(img, region_size=20, ruler=20.0)
+    slic.iterate(k)  # 迭代次数，越大效果越好
     slic_enforce_connectivity = True
     if slic_enforce_connectivity:
         slic.enforceLabelConnectivity()
-
-    # 生成超像素块边缘图
-    mask = slic.getLabelContourMask()
-
-    return slic, mask
+    mask_slic = slic.getLabelContourMask()  # 获取Mask，超像素边缘Mask==1
+    label_slic = slic.getLabels()  # 获取超像素标签
+    number_slic = slic.getNumberOfSuperpixels()  # 获取超像素数目
+    mask_inv_slic = cv2.bitwise_not(mask_slic)
+    img_slic = cv2.bitwise_and(img, img, mask=mask_inv_slic)  # 在原图上绘制超像素边界
+    cv2.imshow("img_slic", img_slic)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return mask_slic
 
 
 def get_edge_points(img, mask):
@@ -57,10 +75,12 @@ def knn_match(edge_points1, edge_points2, k=2):
 # 加载图像
 img1 = cv2.imread('1.jpg')
 img2 = cv2.imread('2.jpg')
+img1 = cv2.resize(img1, (640, 640))
+img2 = cv2.resize(img2, (640, 640))
 
 # Slic超像素分割
-slic1, mask1 = slic(img1, k=200)
-slic2, mask2 = slic(img2, k=200)
+slic1, mask1 = slic_compute(img1, k=10)
+slic2, mask2 = slic_compute(img2, k=10)
 
 # 获取边缘特征点
 edge_points1 = get_edge_points(img1, mask1)
